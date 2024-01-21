@@ -137,15 +137,10 @@ scalar `N`i''=r(N)
 	 }
   	 if `=rowsof(`b`i'')==1' {
 		mat `b`i'' = `b`i'' \ .
-		qui su bandit`i'
-		if r(max) == 1 {
-		mat `b`i''[2,1]=1
-		mat `b`i''[1,1]=0
-		}
-		if r(max) == 0 {
-		mat `b`i''[2,1]=0
-		mat `b`i''[1,1]=1
-		}
+		qui count if bandit`i'==1
+		mat `b`i''[2,1]=r(N) /*Hits*/
+		qui count if bandit`i'==0
+		mat `b`i''[1,1]=r(N) /*Misses*/
 	 }
 	 
 scalar `pulls_total' = `pulls_total' + `pulls`i''
@@ -183,7 +178,7 @@ mat `emp_best_arm' = J(2,`k',.)
 mat `hits_misses' = J(3,`k',.)
 
 di _n  
-di in gr "Cumulative Regret: " in ye %10.2f `cum_exp_regret'  in gr " after " in ye `pulls_total' in gr " pulls (minimum asymptotic regret is 0)"
+di in gr "Cumulative Regret: " in ye %10.2f `cum_exp_regret'  in gr " after " in ye `pulls_total' in gr " pulls (minimum asymptotic regret is 0)" /*can be negative in small samples if share of successes exceeds actual probability */
 
 di in smcl in gr "{hline 78}"
 local i = 1
