@@ -50,14 +50,22 @@ mat `betas' = J(3,`k',.)
 
 local i = 1
 while  `i' <=`k' {
+
 mat `betas'[1,`i'] = `i' /* arms */
 mat `betas'[2,`i'] = 1 /* alphas*/
 mat `betas'[3,`i'] = 1 /* betas*/
+
+/*load hits and missings from previous rounds for simulation*/
+		qui count if bandit`i'==1
+		mat `betas'[2,`i'] =r(N)+1 /*Hits*/
+		qui count if bandit`i'==0
+		mat `betas'[3,`i'] =r(N)+1 /*Misses*/
+
 local ++i
 }
 
 
-forv t=1/`=`H'-1' {
+forv t=1/`=`H'' {
 * Thompson sampling
 
 *mat li `betas'
@@ -76,20 +84,47 @@ forv i=1/`=`k'' {
 mata: st_matrix("`max_index'", max_index(st_matrix("`samples'")))
 mata: st_matrix("`weights'", weights(st_matrix("`max_index'")))
 
+*di "hits/misses alphas/betas"
+*mat li `betas'
+
+*di "simulated rewards"
+*mat li `samples'
+
+*di "best arm"
 *mat li `max_index'
 
+*di "weights"
 *mat li `weights'
+
+
+// Handle weights that are all rounded off to zero
+mata : weights = st_matrix("`weights'")
+*mata: weights
+
+// Use the Mata function to get the row indices of maximum values in column 2
+mata : max_indices = max_index(weights')
+*mata : max_indices[2,1] // empty if ties
+
+// Replace the maximum values in column 2 with 1
+mata : weights[max_indices[2,1],2] = 1
+mata :  st_matrix("`weights'",weights)
 
 local draw
 forv i=1/`=rowsof(`weights')' {
 local draw "`draw' `=`weights'[`i',1]' `=round(max(`N'*`weights'[`i',2],`c'))'"
+*di "`=`N'*`weights'[`i',2]'"
 }
 
-*di "`draw'"
+*di "draw `draw'"
 
 *Pick the arm with highest sampled estimate
-	 qui bernoulli_bandits_draw `draw',  nol
-	 *bernoulli_bandits_draw `=`best'' 1 ,  nol
+	 if `t'~=`H' {
+ 	 qui bernoulli_bandits_draw `draw',  nol
+}
+	 if `t'==`H' {
+         bernoulli_bandits_draw `draw', `nostats' `nolog'
+}
+
 
 tempname updates
 mat `updates' = r(hits_misses)
@@ -111,7 +146,7 @@ mat `betas'[3,`i'] = `updates'[3,`i']+1
 
 if "`animation'"!="" {
 			tw (function y = betaden(`betas'[2,`i'],`betas'[3,`i'],x), range(0.01 0.99) lwidth(medthick)),  xline(``i'', lpattern(dash) lc(black) lwidth(medthick)) ///
-		   ytitle(B(`=`betas'[2,`i']',`=`betas'[3,`i']') densities) ylabel(#0, nolabels nogrid) xlabel(, nogrid) xtitle(Share of successes) plotr(m(zero)) saving("figures/`i'_`t'", replace) nodraw/**/
+		   ytitle("B(`=`betas'[2,`i']',`=`betas'[3,`i']')" "density") ylabel(#0, nolabels nogrid) xlabel(, nogrid) xtitle(Share of successes) plotr(m(zero)) saving("figures/`i'_`t'", replace) nodraw/**/
 	*	   graph export "figures\beta_posterior_arm_`i'_trial_`t'.png",  replace
 	   }
 local combine "`combine' figures/`i'_`t'.gph"
@@ -122,7 +157,6 @@ local combine "`combine' figures/`i'_`t'.gph"
 	}
 }
 
-bernoulli_bandits_draw `draw', `nostats' `nolog'
 
 return add
 
@@ -130,7 +164,7 @@ end
 
 
 
-mata:
+mata: // todo: handle ties
 real matrix max_index(real matrix a)
 {
 rows = rows(a)
