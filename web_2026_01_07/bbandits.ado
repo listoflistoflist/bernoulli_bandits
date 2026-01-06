@@ -23,57 +23,39 @@ program bbandits, eclass
 * returns "var," if "," is placed without space in the syntax "syntax varlist," instead of "syntax varlist ,"
 * solution: replace "," with empty space
 
-local var3 = subinstr("`3'", ",", "", .)	
+local var3 = subinstr("`3'", ",", "", .)
 
 * Capture some input errors
 local nvars : word count `varlist'
-
 if `nvars' < 3 {
     di as error "bbandits requires at least outcome, treatment, and batch variables."
     di as error "Usage:  bbandits outcome treatment batch"
     exit 198
 }
 
-** check if any arm is not played in any batch and warn the user
-* Strip comma and create the cross-tab as a matrix
-local var3 = subinstr("`3'", ",", "", .)
-qui tabulate `2' `var3', matcell(freq)
-
-
-
-*** Stop the program if there are any missing values - for updating the rows with missing values have to be manually dropped 
-
+*** Stop the program if there are any missing values
 qui count if missing(`1') | missing(`2') | missing(`var3')
 if r(N) > 0 {
-    display as error "ERROR: Missing values are not allowed in `1', `2', or `3'."
+    display as error "ERROR: Missing values are not allowed in `1', `2', or `var3'."
     exit 198
 }
 
+** check if any arm is not played in any batch and warn the user
+qui tabulate `2' `var3', matcell(freq)
 
-* Trigger warning if any zero
-if `zero_found' {
+local zero_found 0
+forvalues i = 1/`=rowsof(freq)' {
+    forvalues j = 1/`=colsof(freq)' {
+        if (freq[`i',`j'] == 0) local zero_found 1
+    }
+}
+
+if (`zero_found' == 1) {
     di as error "WARNING: One or more batches contain arms that were not played. Such batches are excluded from the corresponding BOLS calculations (see warnings below). To avoid this, ensure that every arm is played in every batch, for example by increasing the clipping rate or epsilon for epsilon-greedy."
 }
 
+matrix drop freq
 
-	di "`var3'"
-	qui tabulate `2' `var3' , matcell(freq)
-
-	local zero_found = 0
-
-	* Loop over matrix elements
-	forvalues i = 1/`=rowsof(freq)' {
-		forvalues j = 1/`=colsof(freq)' {
-			if freq[`i',`j'] == 0 local zero_found = 1
-		}
-	}
-
-	* Trigger warning if any zero
-	if `zero_found' {
-		di as error "WARNING: In any of the batches at least one arm was not played. For the combination of this arm and the reference arm the batch where the arm was not played will be dropped for the BOLS calculation (see warnings below). If you want to avoid this, ensure that each arm is played in every batch, e.g. by setting a clipping rate or a higher epsilon rate."
-	}
-
-		matrix drop freq
 	
 	capture matrix drop alpha_list beta_list
 
