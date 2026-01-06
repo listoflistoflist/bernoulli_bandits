@@ -1,0 +1,21 @@
+v 3
+d bbandits: Inference and analysis for multi-armed bandits; update.
+d article: Earning While Learning: How to Run Batched Bandit Experiments 
+d {bf:J. Kemper, ZEW Mannheim}
+d {bf:D. Rostam-Afschar, Universtiy of Mannheim, IZA, GLO, NeSt.}
+d Batched OLS treatment effects and inference for multi-armed bandits experiments.
+d Simulations are easy to construct. See help {bf:bbandits}.
+d
+d Distribution-Date: 20260107
+d
+d Support: https://rostam-afschar.de/bbandits/bbandits.htm
+f bbandits.ado
+f bbandits.sthlp
+f bbandits_functions.py
+f bbandits_sim.ado
+f bbandits_sim.sthlp
+f bbandits_initialize.ado
+f bbandits_initialize.sthlp
+f bbandits_update.ado
+f bbandits_update.sthlp
+f data.dta

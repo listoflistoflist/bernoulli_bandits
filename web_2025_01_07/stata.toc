@@ -1,0 +1,7 @@
+v 3
+d bbandits: Inference and analysis for multi-armed bandits
+d article: Earning While Learning: How to Run Batched Bandit Experiments 
+d authors: Jan Kemper (ZEW Mannheim)
+d authors: Davud Rostam-Afschar (University of Mannheim, IZA, GLO, NeSt)
+d
+p bbandits Multi-armed bandits
