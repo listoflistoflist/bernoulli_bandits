@@ -204,7 +204,7 @@ program epsilon_greedy_simulation
 	if "`standard_deviations'" == "" {
 		
 	python: list_of_standard_deviations = [1] * len(list_of_true_mean)
-	python: print("No Standard deviations were given. Standard deviations for the rewards from the normal distributions are set to 1 for all arms.")
+	python: print("Standard deviations not provided. For all arms, standard deviations for the normal distributions of rewards are set to 1.")
 		
 	}
 	else {
