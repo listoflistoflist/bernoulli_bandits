@@ -23,38 +23,39 @@ program bbandits, eclass
 * returns "var," if "," is placed without space in the syntax "syntax varlist," instead of "syntax varlist ,"
 * solution: replace "," with empty space
 
-local var3 = subinstr("`3'", ",", "", .)
+local var3 = subinstr("`3'", ",", "", .)	
 
 * Capture some input errors
 local nvars : word count `varlist'
+
 if `nvars' < 3 {
     di as error "bbandits requires at least outcome, treatment, and batch variables."
     di as error "Usage:  bbandits outcome treatment batch"
     exit 198
 }
 
-*** Stop the program if there are any missing values
-qui count if missing(`1') | missing(`2') | missing(`var3')
-if r(N) > 0 {
-    display as error "ERROR: Missing values are not allowed in `1', `2', or `var3'."
-    exit 198
+* --- Check whether any arm has zero observations in any batch ---
+tempname FREQ
+capture qui tabulate `2' `var3', matcell(`FREQ')
+if _rc {
+    di as error "ERROR: tabulate `2' `var3' with matcell() failed (rc=" _rc ")."
+    di as error "Check whether `2' or `var3' are strings, have too many categories, or contain missing."
+    exit _rc
 }
-
-** check if any arm is not played in any batch and warn the user
-qui tabulate `2' `var3', matcell(freq)
 
 local zero_found 0
-forvalues i = 1/`=rowsof(freq)' {
-    forvalues j = 1/`=colsof(freq)' {
-        if (freq[`i',`j'] == 0) local zero_found 1
+forvalues i = 1/`=rowsof(`FREQ')' {
+    forvalues j = 1/`=colsof(`FREQ')' {
+        if (`FREQ'[`i',`j'] == 0) local zero_found 1
     }
 }
+matrix drop `FREQ'
 
-if (`zero_found' == 1) {
+
+* Trigger warning if any zero
+if `zero_found' {
     di as error "WARNING: One or more batches contain arms that were not played. Such batches are excluded from the corresponding BOLS calculations (see warnings below). To avoid this, ensure that every arm is played in every batch, for example by increasing the clipping rate or epsilon for epsilon-greedy."
 }
-
-matrix drop freq
 
 	
 	capture matrix drop alpha_list beta_list
